@@ -49,7 +49,8 @@ bindsym $mod+Control+d exec i3_quickterm
 # bindsym $mod+d exec --no-startup-id i3-dmenu-desktop
 
 # Print screen
-bindsym Print exec xfce4-screenshooter -r -o 'metauploader -n -f'
+# bindsym Print exec xfce4-screenshooter -r -o 'metauploader -n -f'
+bindsym Print exec xfce4-screenshooter -r -o 'xclip -selection clipboard -t image/png'
 
 # change focus
 bindsym $mod+h focus left
@@ -86,11 +87,12 @@ bindsym $mod+f fullscreen toggle
 
 # change container layout (stacked, tabbed, toggle split)
 bindsym $mod+s layout stacking
-bindsym $mod+w layout tabbed
+# bindsym $mod+w layout tabbed
 bindsym $mod+Shift+s layout toggle split
 
 # toggle tiling / floating
 bindsym $mod+Shift+space floating toggle
+bindsym $mod+w sticky toggle
 
 # change focus between tiling / floating windows
 bindsym $mod+space focus mode_toggle
@@ -132,6 +134,9 @@ bindsym $mod+Shift+7 move container to workspace 7
 bindsym $mod+Shift+8 move container to workspace 8
 bindsym $mod+Shift+9 move container to workspace 9
 bindsym $mod+Shift+0 move container to workspace 10
+
+bindsym $mod+Shift+greater move workspace to output right
+bindsym $mod+less move workspace to output left
 
 bindsym $mod+x scratchpad show
 bindsym $mod+shift+x move scratchpad
@@ -223,6 +228,7 @@ exec --no-startup-id xrandr --dpi 144
 exec --no-startup-id discord                                   # Discord
 exec --no-startup-id rocketchat-desktop                        # Rocket Chat
 exec --no-startup-id messengerfordesktop                       # Messenger
+exec --no-startup-id slack                                     # Slack
 exec --no-startup-id emacs --daemon                            # Emacs Daemon
 exec_always $HOME/.config/polybar/launch.sh
 
@@ -256,7 +262,7 @@ assign [class="discord" instance="discord"] discord
 assign [class="Riot" instance="riot" ] riot
 assign [class="Rocket.Chat+" instance="rocket.chat+"] rocketchat
 assign [class="Messenger for Desktop" instance="messenger for desktop"] messenger
-
+assign [class="Slack" instance="slack"] slack
 
 # Make TeamViewer windows popup by default
 for_window [class="Steam" instance="Steam"] floating enable

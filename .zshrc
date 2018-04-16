@@ -114,8 +114,12 @@ export NVM_DIR="$HOME/.nvm"
 bindkey "^[Od" backward-word
 bindkey "^[Oc" forward-word
 
-alias ls="colorls"
+alias ls="colorls -a --sd"
+alias l="colorls -la --sd"
 
 eval $(thefuck --alias)
 
 # alias ghci="stack ghci"
+
+alias docker_clean_images='sudo docker rmi $(sudo docker images -a --filter=dangling=true -q)'
+alias docker_clean_ps='sudo docker rm $(sudo docker ps --filter=status=exited --filter=status=created -q)'

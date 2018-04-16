@@ -31,9 +31,11 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     markdown
      vimscript
      yaml
      javascript
+     (c-c++ :variables c-c++-enable-clang-support t)
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -46,7 +48,8 @@ values."
      git
      react
      ;; markdown
-     ;; org
+     (org :variables
+          org-enable-bootstrap-support t)
      ;; (shell :variables
      ;;        shell-default-height 30
      ;;        shell-default-position 'bottom)
@@ -59,10 +62,19 @@ values."
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages '(
+                                      ag
                                       find-file-in-project
+                                      evil-easymotion
+                                      ;; meghanada
+                                      jdee
+                                      groovy-mode
+                                      gradle-mode
+
+                                      ;; Themes
+                                      color-theme-sanityinc-tomorrow
                                       atom-one-dark-theme
                                       doom-themes
-                                      evil-easymotion
+                                      gruvbox-theme
                                       )
 
    ;; A list of packages that cannot be updated.
@@ -137,6 +149,7 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(doom-one
+                         gruvbox-dark-medium
                          spacemacs-dark
                          spacemacs-light)
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -311,6 +324,7 @@ executes.
  This function is mostly useful for variables that need to be set
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
+
   )
 
 (defun dotspacemacs/user-config ()
@@ -321,8 +335,42 @@ This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
 
-  (load-theme 'doom-one t)
+  ;; (with-eval-after-load 'org
+  ;;   (progn
+  ;;     (org-babel-tangle-file "~/.spacemacs.d/configuration.org" "~/.spacemacs.d/configuration.el" "elisp")
+  ;;     (load-file "~/.spacemacs.d/configuration.el")))
+  ;; (org-babel-load-file (expand-file-name "~/.spacemacs.d/configuration.org"))
 
+  ;; Projectile
+  (define-key evil-normal-state-map (kbd "SPC p") 'helm-projectile)
+
+  ;; Avy
+  avy-all-windows 'all-frames
+
+  ;; Bind leader-s to 'easymotion',
+  ;; but also unbind leader-s-h from auto-highlight-symbol
+  (with-eval-after-load 'auto-highlight-symbol
+    (evil-leader/set-key
+      "s" 'evil-avy-goto-char))
+
+
+  ;; Scroll wheel
+  (setq mouse-wheel-scroll-amount '(2 ((shift) . 1))) ;; two lines at a time
+  (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+  (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+
+  ;; Leader
+  (evil-leader/set-key
+    "p" 'helm-projectile
+    "P" 'helm-projectile-switch-project)
+
+  ;; Backup and auto save files
+  (setq backup-directory-alist
+        `((".*" . ,temporary-file-directory)))
+  (setq auto-save-file-name-transforms
+        `((".*" ,temporary-file-directory t)))
+
+  ;; Neotree
   (with-eval-after-load 'neotree
     (define-key neotree-mode-map (kbd "<backspace>") 'neotree-toggle)
     (define-key neotree-mode-map (kbd "o") 'neotree-enter)
@@ -344,26 +392,39 @@ you should place your code here."
             (neotree-find file-name))
         (message "Could not find git project root."))))
 
-  (define-key evil-normal-state-map (kbd "<backspace>") 'neotree-toggle)
-  (define-key evil-normal-state-map (kbd "S-<backspace>") 'neotree-project-dir)
+  (define-key evil-normal-state-map (kbd "S-<backspace>") 'neotree-toggle)
+  (define-key evil-normal-state-map (kbd "<backspace>") 'neotree-project-dir)
 
-  (define-key evil-normal-state-map (kbd "SPC p") 'helm-projectile)
+  ;; Themes & Style
 
-  ;; Bind leader-s to 'easymotion',
-  ;; but also unbind leader-s-h from auto-highlight-symbol
-  (with-eval-after-load 'auto-highlight-symbol
-    (evil-leader/set-key
-      "s" 'evil-avy-goto-char))
-
-  ;; Bind some useful leader keys
-  (evil-leader/set-key
-    "p" 'helm-projectile
-    "P" 'helm-projectile-switch-project)
+  (load-theme 'doom-one t)
 
   (setq-default
    standard-indent 2
    tab-width 2
-   indent-tabs-mode nil
+   indent-tabs-mode nil)
+
+  ;; Case labels should be indented
+  (c-set-offset 'case-label '+)
+
+  (c-add-style "mystyle"
+               '((c-basic-offset . 2)
+                 (c-offsets-alist
+                  (defun-open . 0)
+                  (substatement-open . 0))))
+
+  (setq c-default-style "mystyle")
+
+
+  ;; Org mode
+  (setq org-src-tab-acts-natively t)
+  (setq org-use-sub-superscripts '{})
+  (setq org-export-with-sub-superscripts '{})
+
+  ;; Language-specific variables
+
+  ;; Javascript
+  (setq-default
    js-indent-level 2
    js2-basic-offset 2
    js2-strict-semi-warning nil
@@ -375,11 +436,26 @@ you should place your code here."
    web-mode-attr-indent-offset 2
    web-mode-indent-style 2)
 
-  ;;; scroll one line at a time (less "jumpy" than defaults)
-  (setq mouse-wheel-scroll-amount '(2 ((shift) . 1))) ;; two lines at a time
-  (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-  (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+  ;; Assembly ARM
+  ;; (setq asm-comment-char ?\;)
 
+  ;; Browser
+  (setq browse-url-browser-function 'browse-url-generic
+        browse-url-generic-program "xdg-open")
+
+  ;; Fun utilities
+  (defun calc-eval-region (beg end)
+    "Eval the arithmetic expression in the region and replace it with the result"
+    (interactive "r")
+    (let ((val (calc-eval (buffer-substring beg end))))
+      (delete-region beg end)
+      (insert val)))
+
+  ;; UTF-8 as default encoding
+  (prefer-coding-system 'utf-8)
+  (set-default-coding-systems 'utf-8)
+  (set-terminal-coding-system 'utf-8)
+  (set-keyboard-coding-system 'utf-8)
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -392,7 +468,7 @@ you should place your code here."
  '(evil-want-Y-yank-to-eol nil)
  '(package-selected-packages
    (quote
-    (flycheck-pos-tip pos-tip flycheck evil-easymotion vimrc-mode dactyl-mode yaml-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc company-tern dash-functional tern coffee-mode doom-themes all-the-icons memoize font-lock+ atom-one-dark-theme find-file-in-project smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub let-alist with-editor company-statistics company auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
+    (color-theme-sanityinc-tomorrow gruvbox-theme autothemer mmm-mode markdown-toc markdown-mode gh-md ox-twbs org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download htmlize gnuplot disaster company-c-headers cmake-mode clang-format ivy ag jdee groovy-mode gradle-mode meghanada flycheck-pos-tip pos-tip flycheck evil-easymotion vimrc-mode dactyl-mode yaml-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc company-tern dash-functional tern coffee-mode doom-themes all-the-icons memoize font-lock+ atom-one-dark-theme find-file-in-project smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub let-alist with-editor company-statistics company auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
