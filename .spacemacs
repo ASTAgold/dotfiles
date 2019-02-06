@@ -31,10 +31,17 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     csv
+     ;; haskell
+     latex
+     python
+     lua
+     php
      markdown
      vimscript
      yaml
      javascript
+     spotify
      (c-c++ :variables c-c++-enable-clang-support t)
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
@@ -43,6 +50,7 @@ values."
      ;; ----------------------------------------------------------------
      helm
      auto-completion
+     ;; java
      ;; better-defaults
      emacs-lisp
      git
@@ -66,15 +74,22 @@ values."
                                       find-file-in-project
                                       evil-easymotion
                                       ;; meghanada
-                                      jdee
                                       groovy-mode
                                       gradle-mode
+                                      kotlin-mode
+                                      import-js
+                                      expand-region
+
+                                      graphql-mode
 
                                       ;; Themes
                                       color-theme-sanityinc-tomorrow
                                       atom-one-dark-theme
                                       doom-themes
                                       gruvbox-theme
+
+                                      ;; LaTeX
+                                      latex-preview-pane
                                       )
 
    ;; A list of packages that cannot be updated.
@@ -423,6 +438,9 @@ you should place your code here."
 
   ;; Language-specific variables
 
+  ;; LAU
+  (add-to-list 'auto-mode-alist '("\\.lau\\'" . lua-mode))
+
   ;; Javascript
   (setq-default
    js-indent-level 2
@@ -435,6 +453,10 @@ you should place your code here."
    web-mode-code-indent-offset 2
    web-mode-attr-indent-offset 2
    web-mode-indent-style 2)
+
+  ;; ;; Java
+  ;; (setq eclim-eclipse-dirs '("/usr/lib/eclipse")
+  ;;       eclim-executable "/usr/lib/eclipse/eclimd")
 
   ;; Assembly ARM
   ;; (setq asm-comment-char ?\;)
@@ -456,6 +478,161 @@ you should place your code here."
   (set-default-coding-systems 'utf-8)
   (set-terminal-coding-system 'utf-8)
   (set-keyboard-coding-system 'utf-8)
+
+  ;; Sort JS imports
+  (defun sort-js-imports ()
+    (interactive)
+    (sort-js-imports-region nil (point-min) (get-end-of-js-import))
+    )
+
+  (defun get-end-of-js-import ()
+    (save-excursion
+      (goto-char (point-max))
+      (search-backward-regexp "import")
+      (word-search-forward "from" nil t)
+      (line-end-position)
+      )
+    )
+
+  (defun sort-js-imports-region (reverse beg end)
+    (interactive "P\nr")
+    (save-excursion
+      (save-restriction
+        (narrow-to-region beg end)
+        (goto-char (point-min))
+        (let ;; To make `end-of-line' and etc. to ignore fields.
+            ((inhibit-field-text-motion t))
+          (sort-subr reverse
+                     'forward-line
+                     (lambda () (search-forward "from" nil t) (end-of-line))
+                     (lambda ()
+                       (let (
+                             (skip-amount (save-excursion (search-forward "from" nil t)))
+                             (skip-amount-end (line-end-position))
+                             )
+                         (cons skip-amount skip-amount-end)
+                         )
+                       )
+                     nil
+                     (lambda (a b)
+                       (let ((s1 (buffer-substring (car a) (cdr a)))
+                             (s2 (buffer-substring (car b) (cdr b))))
+                         (message (format "[%s] [%s] [%s] [%s] [%s]\n" s1 s2 a b (calculate-string-priority s1 s2)))
+                         (calculate-string-priority s1 s2)
+                       )
+                     ))))))
+
+  (defun calculate-string-priority (s1 s2)
+    (< (+ (calculate-js-import-priority s1) (if (string< s1 s2) -1 1)) (calculate-js-import-priority s2)))
+
+  (defun calculate-js-import-priority (import)
+    (catch 'val
+      (cond
+       ((> (or (string-match "lodash" import) -2) -1) (throw 'val 0))
+       ((> (or (string-match "\"react\"" import) -2) -1) (throw 'val 10))
+       ((> (or (string-match "\"react" import) -2) -1) (throw 'val 11))
+       ((> (or (string-match "\@.*\"" import) -2) -1) (throw 'val 20))
+       ((> (or (string-match "/imports/ui/" import) -2) -1) (throw 'val 30))
+       ((> (or (string-match "/imports/helpers/" import) -2) -1) (throw 'val 40))
+       ((> (or (string-match "/imports/api/" import) -2) -1) (throw 'val 50))
+       ((> (or (string-match "scss" import) -2) -1) (throw 'val 100))
+       ((> (or (string-match "../" import) -2) -1) (throw 'val 110))
+       (t (throw 'val 20)))
+      )
+    )
+
+  (setq auto-save-file-name-transforms
+        `((".*" ,(concat user-emacs-directory "auto-save/") t))) 
+
+  (setq backup-directory-alist
+        `(("." . ,(expand-file-name
+                   (concat user-emacs-directory "backups")))))
+
+  (defun md407/connect ()
+    "Connect to the MD407 if no connection is already made"
+    (unless (get-process "md407")
+      (let ((port (read-file-name "Port: " "/dev/")))
+        (make-serial-process :port port
+                             :speed 115200
+                             :name "md407"
+                             :buffer "*md407-serial-output*"))))
+
+  (defun md407/load-file (file-path)
+    "Load .s19 file to the MD407"
+    (let ((s19-text (with-temp-buffer (insert-file-contents file-path)
+                                      (buffer-string))))
+      (md407/connect)
+      (process-send-string "md407" (concat "load\n" s19-text)))
+    (message "%s loaded" file-path))
+
+  (defun md407/go ()
+    "Send <go> command to the MD407"
+    (process-send-string "md407" "go\n")
+    (message "<go> command sent!"))
+
+
+  ;; TODO: Rewrite reading output from serial connection instead of
+  ;;       waiting an aribtrary time.
+  (defun md407/load-and-go ()
+    "Convenience function to load and run an s19 file to the MD407"
+    (interactive)
+    (let ((s19-file (path-to-s19-file)))
+      (if (not s19-file)
+          (message "Could not find .s19 file. Is this a Rust project?")
+        (md407/load-file s19-file)
+        (sit-for 0.1)
+        (md407/go))))
+
+  (defun paths-to-root (path)
+    "Return list of paths from given path to root"
+    (let ((path-parts (split-string path "/" t))
+          (result '("/")))
+      (dolist (element path-parts result)
+        (setq result (cons (concat (car result) element "/") result)))))
+
+  (defun find-cargo-toml ()
+    "Return path in this or any of the parent directories which contains
+Cargo.toml, nil if not found anywhere."
+    (let ((paths (paths-to-root (file-name-directory buffer-file-name))))
+      (while (and paths (not (file-exists-p (concat (car paths) "/Cargo.toml"))))
+        (setq paths (cdr paths)))
+      (car paths)))
+
+  ;; TODO: Check for existence of file at provided path!
+  (defun get-key (path key)
+    "Get the name of a Rust crate as specified in its Cargo.toml"
+    (with-temp-buffer (insert-file-contents path)
+                      (re-search-forward (concat key "[[:space:]]*=[[:space:]]*\""))
+                      (current-word)))
+
+  (defun path-to-s19-file ()
+    (interactive)
+    (let ((base (find-cargo-toml)))
+      (when base
+        (let ((name (get-key (concat base "Cargo.toml") "name"))
+              (target (get-key (concat base ".cargo/config") "target")))
+          (if target
+              (concat base "target/" target "/release/" name ".s19")
+            (message "Could not open .cargo/config"))))))
+
+  (defvar md407-mode-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map "<f6" 'md407/load-and-go)
+      map)
+    "Keymap used in md407-mode")
+
+  (define-minor-mode md407-mode
+    "Easy compilation and loading of C and Rust code onto the MD407"
+    :lighter " MD407"
+    :keymap md407-mode-map)
+                                        ;  :keymap `((,(kbd "<f6>") . '(md407/load-and-go))))
+
+
+  ;; LaTeX
+  (setq tex-fontify-script nil)
+  (setq font-latex-fontify-script nil)
+
+  (eval-after-load "tex-mode" '(fset 'tex-font-lock-suscript 'ignore))
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -466,9 +643,11 @@ you should place your code here."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(evil-want-Y-yank-to-eol nil)
+ '(magit-todos-mode t)
  '(package-selected-packages
    (quote
-    (color-theme-sanityinc-tomorrow gruvbox-theme autothemer mmm-mode markdown-toc markdown-mode gh-md ox-twbs org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download htmlize gnuplot disaster company-c-headers cmake-mode clang-format ivy ag jdee groovy-mode gradle-mode meghanada flycheck-pos-tip pos-tip flycheck evil-easymotion vimrc-mode dactyl-mode yaml-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc company-tern dash-functional tern coffee-mode doom-themes all-the-icons memoize font-lock+ atom-one-dark-theme find-file-in-project smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub let-alist with-editor company-statistics company auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
+    (csv-mode intero hlint-refactor hindent helm-hoogle haskell-snippets flycheck-haskell company-ghci company-ghc ghc haskell-mode company-cabal cmm-mode graphql graphql-mode helm-spotify-plus spotify multi kotlin-mode company-emacs-eclim eclim auto-complete-auctex company-auctex auctex-latexmk auctex latex-preview-pane yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic lua-mode import-js grizzl phpunit phpcbf php-extras php-auto-yasnippets drupal-mode php-mode color-theme-sanityinc-tomorrow gruvbox-theme autothemer mmm-mode markdown-toc markdown-mode gh-md ox-twbs org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download htmlize gnuplot disaster company-c-headers cmake-mode clang-format ivy ag jdee groovy-mode gradle-mode meghanada flycheck-pos-tip pos-tip flycheck evil-easymotion vimrc-mode dactyl-mode yaml-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc company-tern dash-functional tern coffee-mode doom-themes all-the-icons memoize font-lock+ atom-one-dark-theme find-file-in-project smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub let-alist with-editor company-statistics company auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+ '(safe-local-variable-values (quote ((eval progn (pp-buffer) (indent-buffer))))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

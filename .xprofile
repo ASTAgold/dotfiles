@@ -44,6 +44,10 @@ export GIT_SSH=/usr/bin/ssh
 
 startbg emacs --daemon
 
-exec i3
+eval $(/usr/bin/gnome-keyring-daemon --start --components=pkcs11,secrets,ssh)
+export SSH_AUTH_SOCK
 
+export GDK_BACKEND=x11
+exe c$GDMSESSION
+# exec gnome-session
 

@@ -1,2 +1,2 @@
 #!/bin/sh
-feh  --bg-fill '/home/metamist/.config/metaswitcher/themes/firewatch/background.jpg' 
+feh --bg-fill '/home/metamist/.config/metaswitcher/themes/minimalistic/background.png' 
