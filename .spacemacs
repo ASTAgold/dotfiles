@@ -31,6 +31,7 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     erlang
      csv
      ;; haskell
      latex
@@ -90,6 +91,9 @@ values."
 
                                       ;; LaTeX
                                       latex-preview-pane
+
+                                      ;; Clipboard
+                                      xclip
                                       )
 
    ;; A list of packages that cannot be updated.
@@ -357,16 +361,16 @@ you should place your code here."
   ;; (org-babel-load-file (expand-file-name "~/.spacemacs.d/configuration.org"))
 
   ;; Projectile
-  (define-key evil-normal-state-map (kbd "SPC p") 'helm-projectile)
+  ;; (define-key evil-normal-state-map (kbd "SPC p") 'helm-projectile)
 
   ;; Avy
   avy-all-windows 'all-frames
 
   ;; Bind leader-s to 'easymotion',
   ;; but also unbind leader-s-h from auto-highlight-symbol
-  (with-eval-after-load 'auto-highlight-symbol
-    (evil-leader/set-key
-      "s" 'evil-avy-goto-char))
+  ;; (with-eval-after-load 'auto-highlight-symbol
+  (evil-leader/set-key
+    "s" 'evil-avy-goto-char)
 
 
   ;; Scroll wheel
@@ -388,6 +392,7 @@ you should place your code here."
   ;; Neotree
   (with-eval-after-load 'neotree
     (define-key neotree-mode-map (kbd "<backspace>") 'neotree-toggle)
+    (define-key neotree-mode-map (kbd "DEL") 'neotree-toggle)
     (define-key neotree-mode-map (kbd "o") 'neotree-enter)
     (define-key neotree-mode-map (kbd "O") 'neotree-quick-look)
     (define-key neotree-mode-map (kbd "r") 'neotree-refresh)
@@ -409,6 +414,7 @@ you should place your code here."
 
   (define-key evil-normal-state-map (kbd "S-<backspace>") 'neotree-toggle)
   (define-key evil-normal-state-map (kbd "<backspace>") 'neotree-project-dir)
+  (define-key evil-normal-state-map (kbd "DEL") 'neotree-project-dir)
 
   ;; Themes & Style
 
@@ -435,6 +441,7 @@ you should place your code here."
   (setq org-src-tab-acts-natively t)
   (setq org-use-sub-superscripts '{})
   (setq org-export-with-sub-superscripts '{})
+  (setq org-latex-caption-above nil)
 
   ;; Language-specific variables
 
@@ -633,6 +640,9 @@ Cargo.toml, nil if not found anywhere."
   (setq font-latex-fontify-script nil)
 
   (eval-after-load "tex-mode" '(fset 'tex-font-lock-suscript 'ignore))
+
+  ;; Clipboard
+  (xclip-mode t)
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -642,11 +652,13 @@ Cargo.toml, nil if not found anywhere."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(erlang-indent-level 2)
  '(evil-want-Y-yank-to-eol nil)
  '(magit-todos-mode t)
+ '(org-agenda-files (quote ("~/Documents/Schoolwork/DigDesign/report.org")))
  '(package-selected-packages
    (quote
-    (csv-mode intero hlint-refactor hindent helm-hoogle haskell-snippets flycheck-haskell company-ghci company-ghc ghc haskell-mode company-cabal cmm-mode graphql graphql-mode helm-spotify-plus spotify multi kotlin-mode company-emacs-eclim eclim auto-complete-auctex company-auctex auctex-latexmk auctex latex-preview-pane yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic lua-mode import-js grizzl phpunit phpcbf php-extras php-auto-yasnippets drupal-mode php-mode color-theme-sanityinc-tomorrow gruvbox-theme autothemer mmm-mode markdown-toc markdown-mode gh-md ox-twbs org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download htmlize gnuplot disaster company-c-headers cmake-mode clang-format ivy ag jdee groovy-mode gradle-mode meghanada flycheck-pos-tip pos-tip flycheck evil-easymotion vimrc-mode dactyl-mode yaml-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc company-tern dash-functional tern coffee-mode doom-themes all-the-icons memoize font-lock+ atom-one-dark-theme find-file-in-project smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub let-alist with-editor company-statistics company auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+    (erlang xclip csv-mode intero hlint-refactor hindent helm-hoogle haskell-snippets flycheck-haskell company-ghci company-ghc ghc haskell-mode company-cabal cmm-mode graphql graphql-mode helm-spotify-plus spotify multi kotlin-mode company-emacs-eclim eclim auto-complete-auctex company-auctex auctex-latexmk auctex latex-preview-pane yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic lua-mode import-js grizzl phpunit phpcbf php-extras php-auto-yasnippets drupal-mode php-mode color-theme-sanityinc-tomorrow gruvbox-theme autothemer mmm-mode markdown-toc markdown-mode gh-md ox-twbs org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download htmlize gnuplot disaster company-c-headers cmake-mode clang-format ivy ag jdee groovy-mode gradle-mode meghanada flycheck-pos-tip pos-tip flycheck evil-easymotion vimrc-mode dactyl-mode yaml-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc company-tern dash-functional tern coffee-mode doom-themes all-the-icons memoize font-lock+ atom-one-dark-theme find-file-in-project smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub let-alist with-editor company-statistics company auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
  '(safe-local-variable-values (quote ((eval progn (pp-buffer) (indent-buffer))))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

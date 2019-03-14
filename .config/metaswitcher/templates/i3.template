@@ -243,6 +243,9 @@ for_window [class="^.*"] border pixel 1
 # Make TeamViewer windows popup by default
 for_window [class="TeamViewer" instance="TeamViewer"] floating enable
 
+# Amazed lab
+for_window [title="A-mazed"] floating enable
+
 
 for_window [class="Tsim" instance="tsim"] floating enable
 
